@@ -203,6 +203,58 @@ class CheckoutTest {
     }
 
     @Nested
+    inner class OrderIndependenceAndMixedItems {
+
+        // This week's full published pricing: base prices + all three promotions.
+        private val weeklyPricing = PricingRules(
+            unitPrices = mapOf(
+                "A" to Money(50),
+                "B" to Money(75),
+                "C" to Money(25),
+                "D" to Money(150),
+                "E" to Money(200)
+            ),
+            promotions = listOf(
+                MultiPrice(sku = "B", quantityForSpecialPrice = 2, specialPrice = Money(125)),
+                BuyNGetOneFree(sku = "C", buyQuantity = 3, freeQuantity = 1),
+                MealDeal(skus = setOf("D", "E"), bundlePrice = Money(300))
+            )
+        )
+
+        private fun totalFor(skus: List<String>): Money {
+            val checkout = Checkout(weeklyPricing)
+            skus.forEach { checkout.scan(it) }
+            return checkout.totalPrice()
+        }
+
+        @Test
+        fun `B, A, B recognises the two Bs and applies the promotion`() {
+            // B + A + B = 175p
+            assertEquals(Money(175), totalFor(listOf("B", "A", "B")))
+        }
+
+        @Test
+        fun `scan order does not affect the total`() {
+            val expected = Money(175)
+            val permutations = listOf(
+                listOf("B", "A", "B"),
+                listOf("A", "B", "B"),
+                listOf("B", "B", "A")
+            )
+            permutations.forEach { items ->
+                assertEquals(expected, totalFor(items))
+            }
+        }
+
+        @Test
+        fun `combining multiple different promotions in one basket`() {
+            // A(50) + BB(125) + CCCC(75) + D+E(300) = 550
+            val total = totalFor(listOf("A", "B", "C", "D", "B", "C", "E", "C", "C"))
+            assertEquals(Money(550), total)
+        }
+    }
+
+    @Nested
     inner class EdgeCases {
 
         @Test
