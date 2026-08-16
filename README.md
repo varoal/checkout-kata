@@ -5,12 +5,14 @@ promotions configured for the transaction.
 
 ## Running
 
-Requires a JDK 21+.
+Requires JDK 21+ on your `PATH`. Maven does not need to be installed,
+the Maven Wrapper is included. On Windows, `JAVA_HOME` must also be set.
 
 Run the tests:
 
 ```bash
-./mvnw test
+./mvnw test        # macOS/Linux
+mvnw.cmd test       # Windows
 ```
 
 Build the project:
@@ -18,8 +20,6 @@ Build the project:
 ```bash
 ./mvnw package
 ```
-
-No Maven installation is required; the Maven Wrapper is included.
 
 ## Notes
 
