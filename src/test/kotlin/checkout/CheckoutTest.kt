@@ -1,6 +1,7 @@
 package checkout
 
 import checkout.promotions.BuyNGetOneFree
+import checkout.promotions.MealDeal
 import checkout.promotions.MultiPrice
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -146,6 +147,58 @@ class CheckoutTest {
         fun `promotion applies multiple times for multiple complete cycles`() {
             // 2 complete cycles of 4 (8 items, 2 free) + 1 remainder = 7 paid units
             assertEquals(Money(175), totalFor(9))
+        }
+    }
+
+    @Nested
+    inner class MealDealPromotion {
+
+        // D: 150p, E: 200p, D+E together for 300p
+        private val pricing = PricingRules(
+            unitPrices = mapOf("D" to Money(150), "E" to Money(200)),
+            promotions = listOf(MealDeal(skus = setOf("D", "E"), bundlePrice = Money(300)))
+        )
+
+        @Test
+        fun `D alone is priced normally`() {
+            val checkout = Checkout(pricing)
+            checkout.scan("D")
+            assertEquals(Money(150), checkout.totalPrice())
+        }
+
+        @Test
+        fun `E alone is priced normally`() {
+            val checkout = Checkout(pricing)
+            checkout.scan("E")
+            assertEquals(Money(200), checkout.totalPrice())
+        }
+
+        @Test
+        fun `one D and one E form a bundle`() {
+            val checkout = Checkout(pricing)
+            checkout.scan("D")
+            checkout.scan("E")
+            assertEquals(Money(300), checkout.totalPrice())
+        }
+
+        @Test
+        fun `two of each form two bundles`() {
+            val checkout = Checkout(pricing)
+            checkout.scan("D")
+            checkout.scan("D")
+            checkout.scan("E")
+            checkout.scan("E")
+            assertEquals(Money(600), checkout.totalPrice())
+        }
+
+        @Test
+        fun `unbalanced quantities only bundle as many sets as the scarcer item allows`() {
+            // 2 D, 1 E: one bundle (300) + one D at unit price (150)
+            val checkout = Checkout(pricing)
+            checkout.scan("D")
+            checkout.scan("D")
+            checkout.scan("E")
+            assertEquals(Money(450), checkout.totalPrice())
         }
     }
 
