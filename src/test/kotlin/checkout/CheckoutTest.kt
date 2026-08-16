@@ -1,5 +1,6 @@
 package checkout
 
+import checkout.promotions.BuyNGetOneFree
 import checkout.promotions.MultiPrice
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -98,6 +99,53 @@ class CheckoutTest {
         fun `promotion applies multiple times plus a remainder`() {
             // 3 groups of 2 (375) + 1 remaining at unit price (75)
             assertEquals(Money(450), totalFor(7))
+        }
+    }
+
+    @Nested
+    inner class BuyNGetOneFreePromotion {
+
+        // C: 25p each, buy 3 get 1 free
+        private val pricing = PricingRules(
+            unitPrices = mapOf("C" to Money(25)),
+            promotions = listOf(BuyNGetOneFree(sku = "C", buyQuantity = 3, freeQuantity = 1))
+        )
+
+        private fun totalFor(quantity: Int): Money {
+            val checkout = Checkout(pricing)
+            repeat(quantity) { checkout.scan("C") }
+            return checkout.totalPrice()
+        }
+
+        @Test
+        fun `one item is priced normally`() {
+            assertEquals(Money(25), totalFor(1))
+        }
+
+        @Test
+        fun `two items are priced normally`() {
+            assertEquals(Money(50), totalFor(2))
+        }
+
+        @Test
+        fun `below the free threshold no discount applies`() {
+            assertEquals(Money(75), totalFor(3))
+        }
+
+        @Test
+        fun `exactly at the free threshold the extra item is free`() {
+            assertEquals(Money(75), totalFor(4))
+        }
+
+        @Test
+        fun `above the threshold the remainder is priced normally`() {
+            assertEquals(Money(100), totalFor(5))
+        }
+
+        @Test
+        fun `promotion applies multiple times for multiple complete cycles`() {
+            // 2 complete cycles of 4 (8 items, 2 free) + 1 remainder = 7 paid units
+            assertEquals(Money(175), totalFor(9))
         }
     }
 
